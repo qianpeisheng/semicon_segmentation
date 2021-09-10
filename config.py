@@ -8,12 +8,11 @@
 """
 import os
 
-
 class UNetConfig:
 
     def __init__(self,
-                 epochs=100,  # Number of epochs
-                 batch_size=8,    # Batch size
+                 epochs=1000,  # Number of epochs
+                 batch_size=16,    # Batch size
                  # Percent of the data that is used as validation (0-100)
                  validation=10.0,
                  out_threshold=0.5,
@@ -33,7 +32,7 @@ class UNetConfig:
                  load=False,   # Load model from a .pth file
                  save_cp=True,
 
-                 model='NestedUNet',
+                 model= 'NestedUNetPlusAdd', #'NestedUNetPlusAdd',
                  bilinear=True,
                  deepsupervision=True,
                  ):
@@ -42,7 +41,7 @@ class UNetConfig:
         self.images_dir = './data/images'
         self.masks_dir = './data/masks'
         self.checkpoints_dir = './output/checkpoints'
-
+        self.save_dir = './' + str(model)
         self.epochs = epochs
         self.batch_size = batch_size
         self.validation = validation
@@ -68,3 +67,4 @@ class UNetConfig:
         self.deepsupervision = deepsupervision
 
         os.makedirs(self.checkpoints_dir, exist_ok=True)
+        os.makedirs(self.save_dir, exist_ok=True)

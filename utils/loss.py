@@ -13,6 +13,7 @@ class DiceBCELoss(nn.Module):
     def forward(self, inputs, targets, smooth=1):
 
         # comment out if your model contains a sigmoid or equivalent activation layer
+        inputs_ori = inputs
         inputs = torch.sigmoid(inputs)
 
         # flatten label and prediction tensors
@@ -22,7 +23,9 @@ class DiceBCELoss(nn.Module):
         intersection = (inputs * targets).sum()
         dice_loss = 1 - (2.*intersection + smooth) / \
             (inputs.sum() + targets.sum() + smooth)
-        BCE = F.binary_cross_entropy(inputs, targets, reduction='mean')
+        # BCE = F.binary_cross_entropy(inputs, targets, reduction='mean') # unsafe to autocast
+        BCE = F.binary_cross_entropy_with_logits(inputs_ori.flatten(), targets, reduction='mean') # safe to autocast
+
         # Dice_BCE = BCE + dice_loss
 
         return BCE, dice_loss

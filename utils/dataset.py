@@ -8,11 +8,12 @@ from torchvision import transforms
 
 
 class SemiconDataset(Dataset):
-    def __init__(self, mode='Train'):
+    def __init__(self, mode='Train', small_validation=False):
         # Train, valid split 90:10; use tiff data as test
         # Validation images (hand picked): 3_0_0, 8_0_2, 13_0_1
 
         self.mode = mode
+        self.small_validation = small_validation
         if self.mode == 'Train':
             self.images = glob.glob('data/train/images/*')
             # use 0, 255 for visualization
@@ -24,13 +25,34 @@ class SemiconDataset(Dataset):
             self.b_masks = glob.glob('data/validation/b_masks_255/*')
             self.l_masks = glob.glob('data/validation/l_masks_255/*')
             self.s_masks = glob.glob('data/validation/s_masks_255/*')
+        elif self.mode == 'Test':
+            self.segment_size = 2048
+            self.images = glob.glob('data/test/images/*')
         else:
             raise ValueError('dataset mode must be Train or Validation')
+        self.transform = transforms.Compose([
+                # transforms.ToTensor(),
+                transforms.Normalize((0.5), (0.5), inplace=True)]) 
 
     def __len__(self):
-        return len(self.images)
+        if self.mode == 'Test':
+            num_segments = len(self.images) * 4 * 4
+            return num_segments
+        else:
+            return len(self.images)
 
     def __getitem__(self, idx):
+        if self.mode == 'Test':
+            image_idx = idx // 16
+            name = str(self.images[image_idx].split('.')[0].split('/')[-1])
+            segment_idx = idx % 16
+            image = read_image(self.images[image_idx])
+            image = image/255
+            segment_row = segment_idx // 4
+            segment_column = segment_idx % 4
+            segment_image = image[:,2048*segment_row:2048*(segment_row+1),2048*segment_column:2048*(segment_column+1)]
+            return self.transform(segment_image), segment_row, segment_column, name
+
         image = read_image(self.images[idx])
         image = image/255
 
@@ -66,5 +88,5 @@ class SemiconDataset(Dataset):
 
         combined_mask = torch.stack(
             (b_mask, l_mask, s_mask), dim=0).squeeze(1)
-
-        return image, combined_mask, str(self.images[idx].split('.')[0].split('/')[-1])
+        name = str(self.images[idx].split('.')[0].split('/')[-1])
+        return self.transform(image), combined_mask, name
